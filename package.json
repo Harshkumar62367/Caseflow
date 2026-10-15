@@ -1,0 +1,23 @@
+{
+  "name": "caseflow-next",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3402",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3402",
+    "test": "node --test tests/api.test.mjs",
+    "test:e2e": "playwright test",
+    "reset": "node scripts/reset.mjs"
+  },
+  "dependencies": {
+    "next": "16.4.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  },
+  "engines": { "node": ">=22" }
+}
