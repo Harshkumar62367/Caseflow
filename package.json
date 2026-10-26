@@ -8,16 +8,20 @@
     "build": "next build",
     "start": "next start --hostname 127.0.0.1 --port 3402",
     "test": "node --test tests/api.test.mjs",
+    "test:postgres": "node --test tests/postgres.test.mjs",
     "test:e2e": "playwright test",
     "reset": "node scripts/reset.mjs"
   },
   "dependencies": {
     "next": "16.4.1",
+    "pg": "8.23.1",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22.13"
+  }
 }

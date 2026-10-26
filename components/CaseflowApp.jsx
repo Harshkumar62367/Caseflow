@@ -7,9 +7,18 @@ const priorities = ['Low', 'Medium', 'High'];
 const defaults = { accessibleSearch: true, clientEmailValidation: true, copyVariant: 'original' };
 
 async function api(path, options = {}) {
-  const response = await fetch(path, { credentials: 'same-origin', headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) }, ...options });
+  let response;
+  try {
+    response = await fetch(path, { ...options, credentials: 'same-origin', cache: 'no-store', headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) } });
+  } catch {
+    throw new Error('Cannot reach Caseflow. Check that the app is running and try again.');
+  }
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
+  if (!response.ok) {
+    const error = new Error(result.error || `Request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
   return result;
 }
 
@@ -43,13 +52,16 @@ function Shell({ user, config, active, crumb, children }) {
 
 function Login() {
   const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
   async function submit(event) {
-    event.preventDefault(); setError('');
+    event.preventDefault();
+    if (pending) return;
+    setError(''); setPending(true);
     const values = new FormData(event.currentTarget);
     try { await api('/api/login', { method: 'POST', body: JSON.stringify({ email: values.get('email'), password: values.get('password') }) }); window.location.assign('/tickets'); }
-    catch (caught) { setError(caught.message); }
+    catch (caught) { setError(caught.message); setPending(false); }
   }
-  return <div className="login-page"><section className="login-side"><div className="brand"><span className="brand-mark" aria-hidden="true">✦</span>Caseflow</div><h1>Every customer issue, in clear view.</h1><p>A focused support workspace for your team to track, resolve, and learn from every request.</p><small>Caseflow demo workspace</small></section><main className="login-main"><div className="login-card"><div className="eyebrow">Welcome back</div><h2>Sign in to your workspace</h2><p className="muted">Use your demo account to continue.</p><form onSubmit={submit}><ErrorMessage message={error}/><Field id="email" label="Email address"><input id="email" name="email" type="email" autoComplete="username" required defaultValue="agent@caseflow.test"/></Field><Field id="password" label="Password"><input id="password" name="password" type="password" autoComplete="current-password" required/></Field><button className="button primary wide" type="submit">Sign in</button></form><div className="notice">Demo accounts are listed in the project README. This app contains only sample data.</div></div></main></div>;
+  return <div className="login-page"><section className="login-side"><div className="brand"><span className="brand-mark" aria-hidden="true">✦</span>Caseflow</div><h1>Every customer issue, in clear view.</h1><p>A focused support workspace for your team to track, resolve, and learn from every request.</p><small>Caseflow demo workspace</small></section><main className="login-main"><div className="login-card"><div className="eyebrow">Welcome back</div><h2>Sign in to your workspace</h2><p className="muted">Use your demo account to continue.</p><form onSubmit={submit}><ErrorMessage message={error}/><Field id="email" label="Email address"><input id="email" name="email" type="email" autoComplete="username" required defaultValue="agent@caseflow.test"/></Field><Field id="password" label="Password"><input id="password" name="password" type="password" autoComplete="current-password" required/></Field><button className="button primary wide" type="submit" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button></form><div className="notice">Demo accounts are listed in the project README. This app contains only sample data.</div></div></main></div>;
 }
 
 function Tickets({ user, config }) {
@@ -99,13 +111,20 @@ function Reports({ user, config }) {
 
 export default function CaseflowApp() {
   const [session, setSession] = useState(null);
-  useEffect(() => { Promise.all([api('/api/config').catch(() => defaults), api('/api/me').catch(() => null)]).then(([config, result]) => setSession({ config, user: result?.user ?? null })); }, []);
+  const [bootError, setBootError] = useState('');
+  useEffect(() => {
+    Promise.all([
+      api('/api/config').catch(() => defaults),
+      api('/api/me').catch((error) => { if (error.status === 401) return null; throw error; }),
+    ]).then(([config, result]) => setSession({ config, user: result?.user ?? null })).catch((error) => setBootError(error.message));
+  }, []);
   useEffect(() => {
     if (!session) return;
     const path = window.location.pathname;
     if (!session.user && path !== '/login') window.location.replace('/login');
     else if (session.user && (path === '/' || path === '/login')) window.location.replace('/tickets');
   }, [session]);
+  if (bootError) return <div className="boot-message"><ErrorMessage message={bootError}/><button className="button" type="button" onClick={() => window.location.reload()}>Try again</button></div>;
   if (!session) return <p className="boot-message">Loading Caseflow…</p>;
   const { user, config } = session;
   const path = typeof window === 'undefined' ? '' : window.location.pathname;

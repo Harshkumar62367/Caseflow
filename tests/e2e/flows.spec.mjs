@@ -13,6 +13,26 @@ async function signIn(page, email = 'agent@caseflow.test') {
   await expect(page).toHaveURL(/\/tickets$/);
 }
 
+test('sign-in recovers from a wrong password and stays signed in across navigation and reloads', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Password').fill('wrong');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.locator('.error[role="alert"]')).toHaveText('Email or password is incorrect');
+  await page.getByLabel('Password').fill('demo123');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/tickets$/);
+  for (const path of ['/tickets/new', '/tickets/1001', '/tickets']) {
+    await page.goto(path);
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+  }
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto('/tickets/new');
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 test('agent creates a ticket and saves separate priority and status changes', async ({ page }) => {
   await signIn(page);
   await page.getByRole('link', { name: 'New ticket' }).first().click();
