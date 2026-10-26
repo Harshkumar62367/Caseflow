@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3402",
     "build": "next build",
+    "build:vercel": "node database/provision.mjs && next build",
     "start": "next start --hostname 127.0.0.1 --port 3402",
     "test": "node --test tests/api.test.mjs",
     "test:postgres": "node --test tests/postgres.test.mjs",

@@ -29,7 +29,7 @@ The local reset key defaults to `local-demo-reset`; set `BENCHMARK_RESET_KEY` fo
 
 Set the server-only `CASEFLOW_DATABASE_URL` environment variable to a shared PostgreSQL database. The app uses PostgreSQL whenever that variable is present and keeps the SQLite backend for local recording without it. On Vercel it refuses to fall back to a local file, which would lose sessions between instances.
 
-Provision the two tables in [database/schema.sql](database/schema.sql), seed them with `seedTickets()` from `lib/data.mjs`, and use a dedicated database login restricted to the `caseflow_demo` schema. Use the provider's transaction pooler with TLS certificate verification for serverless deployments. Keep this URL out of browser variables, source code, and Git.
+Vercel runs `npm run build:vercel`. It provisions the two tables in [database/schema.sql](database/schema.sql) and inserts the eight demo tickets only when their IDs are absent, then builds the app. Repeated deployments preserve existing tickets and sessions. The connected Neon Free database is dedicated to Caseflow. Its provisioner needs schema creation rights; if using a restricted runtime login, run `node database/provision.mjs` separately with the provisioning login before building. Keep database URLs out of browser variables, source code, and Git.
 
 Set a random `BENCHMARK_RESET_KEY` in Vercel if remote resets are needed; the reset endpoint is disabled on Vercel when it is unset. Both variables require redeployment after setting them. `/api/health` checks storage connectivity and returns the selected backend, without exposing credentials or records.
 
